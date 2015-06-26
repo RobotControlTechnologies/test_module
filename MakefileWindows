@@ -1,0 +1,44 @@
+# Environment
+CC=g++
+CCC=g++
+CXX=g++
+RM = "C:\msys\1.0\bin\rm.exe"
+MKDIR = "C:\msys\1.0\bin\mkdir.exe"
+
+# Constants
+MODULE_HEADERS_DIR = "C:\Program Files (x86)\Jenkins\workspace\module_headers"
+
+INCLUDE_DIR_FLAGS = -I${MODULE_HEADERS_DIR}
+
+FLAGS_MUTUAL = -Wall -m32 -std=c++11 ${INCLUDE_DIR_FLAGS} -MMD -MP -MF "${OBJECTDIR}/$@.d"
+
+
+.PHONY: debug
+
+debug: OBJECTDIR = build/Debug
+debug: FLAGS = -g ${FLAGS_MUTUAL}
+debug: FILENAME_FIX = debug
+debug: clean module
+
+release: OBJECTDIR = build/Release
+release: FLAGS = -O3 ${FLAGS_MUTUAL}
+release: FILENAME_FIX = release
+release: clean module
+
+
+clean:
+	@echo "-------------------------" 
+	${RM} -rf ${OBJECTDIR}
+
+
+test_robot_module.o:  test_robot_module.cpp
+	@echo "-------------------------" 
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} -f "${OBJECTDIR}/$@.d"
+	$(COMPILE.cc) $(FLAGS) -o ${OBJECTDIR}/test_robot_module.o test_robot_module.cpp
+
+
+module: test_robot_module.o
+	@echo "-------------------------" 
+	${MKDIR} -p ${OBJECTDIR}
+	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module_$(FILENAME_FIX).dll ${OBJECTDIR}/test_robot_module.o

@@ -1,11 +1,18 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <map>
-#include <functional>
 
-#include <windows.h>
+#ifdef _WIN32
+	#include <windows.h>
+#else
+	#include <stdint.h>
+	#include <unistd.h>
+	#include <cstdarg>
+	#include <cstddef>
+#endif	
 
-#include "../module_headers/module.h"
-#include "../module_headers/robot_module.h"
+#include "module.h"
+#include "robot_module.h"
 
 #include "test_robot_module.h"
 
@@ -41,9 +48,10 @@ TestRobotModule::TestRobotModule() {
 		robot_functions[function_id] = new FunctionData(function_id + 1, 0, NULL, "throw_exception");
 		function_id++;
 		
-		pt = new FunctionData::ParamTypes[1];
+		pt = new FunctionData::ParamTypes[2];
 		pt[0] = FunctionData::ParamTypes::STRING;
-		robot_functions[function_id] = new FunctionData(function_id + 1, 1, pt, "print");
+		pt[1] = FunctionData::ParamTypes::FLOAT;
+		robot_functions[function_id] = new FunctionData(function_id + 1, 2, pt, "print");
 		function_id++;
 	}
 	{
@@ -54,7 +62,7 @@ TestRobotModule::TestRobotModule() {
 }
 
 const char *TestRobotModule::getUID() {
-	return "Test robot module v1.01";
+	return "Test_robot_module_v107";
 }
 
 void TestRobotModule::prepare(colorPrintf_t *colorPrintf_p, colorPrintfVA_t *colorPrintfVA_p) {
@@ -85,11 +93,11 @@ int TestRobotModule::init() {
 }
 
 Robot* TestRobotModule::robotRequire() {
-	colorPrintf(ConsoleColor(), "new robot require\n");
+	//colorPrintf(ConsoleColor(), "new robot require\n");
 
 	for (m_connections::iterator i = aviable_connections.begin(); i != aviable_connections.end(); ++i) {
 		if (i->second->isAviable) {
-			colorPrintf(ConsoleColor(ConsoleColor::green), "finded free robot: %p\n", i->second);
+			//colorPrintf(ConsoleColor(ConsoleColor::green), "finded free robot\n");
 
 			TestRobot *tr = i->second;
 			tr->isAviable = false;
@@ -105,7 +113,7 @@ void TestRobotModule::robotFree(Robot *robot) {
 
 	for (m_connections::iterator i = aviable_connections.begin(); i != aviable_connections.end(); ++i) {
 		if (i->second == test_robot) {
-			colorPrintf(ConsoleColor(), "free robot: %p\n", test_robot);
+			//colorPrintf(ConsoleColor(), "free robot\n");
 			test_robot->isAviable = true;
 			return;
 		}
@@ -119,7 +127,7 @@ void TestRobotModule::final() {
 	aviable_connections.clear();
 }
 
-int TestRobotModule::startProgram(int uniq_index, void *buffer, unsigned int buffer_length) {
+int TestRobotModule::startProgram(int uniq_index) {
 	return 0;
 }
 
@@ -153,27 +161,34 @@ FunctionResult* TestRobot::executeFunction(system_value command_index, void **ar
 	FunctionResult *fr = NULL;
 
 	switch (command_index) {
-		case 1: {
+		case 1: { // none
 			break;
 		}
-		case 2: {
+		case 2: { // do_something
 			variable_value *vv = (variable_value*) args[0];
+#ifdef _WIN32
 			Sleep((DWORD) *vv);
+#else
+			usleep(((uint32_t) *vv)*1000);
+#endif			
 			break;
 		}
-		case 3: {
+		case 3: { // get_some_value
 			variable_value *vv = (variable_value*) args[0];
-			if (*vv) {
-				Sleep((DWORD) *vv);
-			}
-			fr = new FunctionResult(1, rand());
+			fr = new FunctionResult(1,  *vv);
 			break;
 		}
-		case 4: {
+		case 4: { // throw_exception
 			fr = new FunctionResult(0);
 			break;
 		}
-		case 5: {
+		case 5: { // print
+			variable_value *vv = (variable_value*)args[1];
+#ifdef _WIN32
+			Sleep((DWORD)*vv);
+#else
+			usleep(((uint32_t)*vv) * 1000);
+#endif			
 			puts((const char *) args[0]);
 			break;
 		}
@@ -191,9 +206,9 @@ void TestRobot::axisControl(system_value axis_index, variable_value value) {
 		case 3: { name = "Z"; break; }
 		default: { name = "O_o"; break; };
 	}
-	parent->colorPrintf(ConsoleColor(ConsoleColor::green), "change axis value: %s = %d\n", name, value);
+	parent->colorPrintf(ConsoleColor(ConsoleColor::green), "change axis value: %s = %f\n", name, value);
 }
 
-__declspec(dllexport) RobotModule* getRobotModuleObject() {
+PREFIX_FUNC_DLL RobotModule* getRobotModuleObject() {
 	return new TestRobotModule();
 }

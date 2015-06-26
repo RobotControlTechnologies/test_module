@@ -8,7 +8,7 @@ class TestRobot : public Robot {
 
     public: 
 		bool isAviable;
-		TestRobot(TestRobotModule *parent) : isAviable(true), parent(parent) {}
+		TestRobot(TestRobotModule *parent) : parent(parent), isAviable(true) {}
 		FunctionResult* executeFunction(system_value command_index, void **args);
 		void axisControl(system_value axis_index, variable_value value);
         ~TestRobot() {}
@@ -35,7 +35,9 @@ class TestRobotModule : public RobotModule {
 		void robotFree(Robot *robot);
 		void final();
 
-		int startProgram(int uniq_index, void *buffer, unsigned int buffer_length);
+		void readPC(void *buffer, unsigned int buffer_length) {};
+
+		int startProgram(int uniq_index);
 		int endProgram(int uniq_index);
 		
 		void destroy();
