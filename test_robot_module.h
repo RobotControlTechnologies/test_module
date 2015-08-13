@@ -4,14 +4,18 @@
 class TestRobotModule;
 
 class TestRobot : public Robot {
-	TestRobotModule *parent;
+	char *uniq_name;
+	colorPrintfRobotVA_t *colorPrintf_p;
 
     public: 
 		bool isAviable;
-		TestRobot(TestRobotModule *parent) : parent(parent), isAviable(true) {}
-		FunctionResult* executeFunction(system_value command_index, void **args);
+		TestRobot(unsigned int uniq_index);
+		void prepare(colorPrintfRobot_t *colorPrintf_p, colorPrintfRobotVA_t *colorPrintfVA_p);
+		FunctionResult* executeFunction(CommandMode mode, system_value command_index, void **args);
 		void axisControl(system_value axis_index, variable_value value);
-        ~TestRobot() {}
+		~TestRobot();
+
+		void colorPrintf(ConsoleColor colors, const char *mask, ...);
 };
 typedef std::map<int, TestRobot*> m_connections;
 
@@ -19,12 +23,12 @@ class TestRobotModule : public RobotModule {
 	m_connections aviable_connections;
 	FunctionData **robot_functions;
 	AxisData **robot_axis;
-	colorPrintfVA_t *colorPrintf_p;
+	colorPrintfModuleVA_t *colorPrintf_p;
 
 	public:
 		TestRobotModule();
 		const char *getUID();
-		void prepare(colorPrintf_t *colorPrintf_p, colorPrintfVA_t *colorPrintfVA_p);
+		void prepare(colorPrintfModule_t *colorPrintf_p, colorPrintfModuleVA_t *colorPrintfVA_p);
 
 		FunctionData** getFunctions(unsigned int *count_functions);
 		AxisData** getAxis(unsigned int *count_axis);
