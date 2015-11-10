@@ -3,23 +3,26 @@ CC=g++
 CCC=g++
 CXX=g++
 
+BUILD_NUMBER = 0
+
 # Constants
-MODULE_HEADERS_DIR = /var/lib/jenkins/workspace/module_headers/
-INCLUDE_DIR_FLAGS = -I${MODULE_HEADERS_DIR}
-
-FLAGS_MUTUAL = -Wall -m32 -std=c++11 ${INCLUDE_DIR_FLAGS} -MMD -MP -MF "${OBJECTDIR}/$@.d"
-
 .PHONY: debug
+debug_000 release_000: MODULE_HEADERS_DIR = "/var/lib/jenkins/workspace/module_headers/000"
+debug release: MODULE_HEADERS_DIR = "/var/lib/jenkins/workspace/module_headers/current"
+
+INCLUDE_DIR_FLAGS = -I${MODULE_HEADERS_DIR}
+FLAGS_MUTUAL = -Wall -m32 -std=c++11 ${INCLUDE_DIR_FLAGS} -MMD -MP -MF "${OBJECTDIR}/$@.d" -DBUILD_NUMBER=${BUILD_NUMBER}
 
 debug: OBJECTDIR = build/Debug
-debug: FLAGS = -g ${FLAGS_MUTUAL}
-debug: FILENAME_FIX = debug
-debug: clean module
+debug_000: OBJECTDIR = build/Debug_000
 
 release: OBJECTDIR = build/Release
-release: FLAGS = -O3 ${FLAGS_MUTUAL}
-release: FILENAME_FIX = release
-release: clean module
+release_000: OBJECTDIR = build/Release_000
+
+debug debug_000: FLAGS = -g ${FLAGS_MUTUAL}
+release release_000: FLAGS = -O3 ${FLAGS_MUTUAL}
+
+debug debug_000 release release_000: clean module
 
 clean:
 	@echo "-------------------------" 
@@ -36,6 +39,6 @@ test_robot_module.o:  test_robot_module.cpp
 module: test_robot_module.o
 	@echo "-------------------------" 
 	mkdir -p ${OBJECTDIR}
-	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module_$(FILENAME_FIX).so ${OBJECTDIR}/test_robot_module.o
+	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module.so ${OBJECTDIR}/test_robot_module.o
 
 

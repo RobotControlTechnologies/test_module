@@ -1,4 +1,2 @@
-/Debug/
-/Release/
-/test_module.vcxproj.filters
-/test_module.vcxproj.user
+build/
+nbproject/

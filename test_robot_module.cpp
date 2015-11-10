@@ -17,16 +17,30 @@
 #include "test_robot_module.h"
 
 /* GLOBALS CONFIG */
+
+#define UID "Test_robot_module_v107"
+
 const unsigned int COUNT_ROBOTS = 99;
 const unsigned int COUNT_FUNCTIONS = 5;
 const unsigned int COUNT_AXIS = 3;
 
-#define DEFINE_ALL_AXIS          \
-  ADD_ROBOT_AXIS("X", 100, -100) \
-  ADD_ROBOT_AXIS("Y", 1, 0)      \
-  ADD_ROBOT_AXIS("Z", 100, 0)
+#define ADD_ROBOT_AXIS(AXIS_NAME, UPPER_VALUE, LOWER_VALUE) \
+  robot_axis[axis_id] = new AxisData;                       \
+  robot_axis[axis_id]->axis_index = axis_id + 1;            \
+  robot_axis[axis_id]->upper_value = UPPER_VALUE;           \
+  robot_axis[axis_id]->lower_value = LOWER_VALUE;           \
+  robot_axis[axis_id]->name = AXIS_NAME;                    \
+  ++axis_id;
 
 TestRobotModule::TestRobotModule() {
+#ifndef ROBOT_MODULE_H_000
+  mi = new ModuleInfo;
+  mi->uid = UID;
+  mi->mode = ModuleInfo::Modes::PROD;
+  mi->version = BUILD_NUMBER;
+  mi->digest = NULL;
+#endif
+
   {
     robot_functions = new FunctionData *[COUNT_FUNCTIONS];
     system_value function_id = 0;
@@ -62,11 +76,17 @@ TestRobotModule::TestRobotModule() {
   {
     robot_axis = new AxisData *[COUNT_AXIS];
     system_value axis_id = 0;
-    DEFINE_ALL_AXIS
+    ADD_ROBOT_AXIS("X", 100, -100)
+    ADD_ROBOT_AXIS("Y", 1, 0)
+    ADD_ROBOT_AXIS("Z", 100, 0)
   }
 }
 
-const char *TestRobotModule::getUID() { return "Test_robot_module_v107"; }
+#ifdef ROBOT_MODULE_H_000
+const char *TestRobotModule::getUID() { return UID; }
+#else
+const struct ModuleInfo &TestRobotModule::getModuleInfo() { return *mi; }
+#endif
 
 void TestRobotModule::prepare(colorPrintfModule_t *colorPrintf_p,
                               colorPrintfModuleVA_t *colorPrintfVA_p) {
@@ -145,6 +165,10 @@ int TestRobotModule::startProgram(int uniq_index) { return 0; }
 int TestRobotModule::endProgram(int uniq_index) { return 0; }
 
 void TestRobotModule::destroy() {
+#ifndef ROBOT_MODULE_H_000
+  delete mi;
+#endif
+
   for (unsigned int j = 0; j < COUNT_FUNCTIONS; ++j) {
     if (robot_functions[j]->count_params) {
       delete[] robot_functions[j]->params;
@@ -200,11 +224,20 @@ FunctionResult *TestRobot::executeFunction(CommandMode mode,
     }
     case 3: {  // get_some_value
       variable_value *vv = (variable_value *)args[0];
+#ifdef ROBOT_MODULE_H_000
       fr = new FunctionResult(1, *vv);
+#else
+      fr = new FunctionResult(FunctionResult::Types::VALUE, *vv);
+#endif
       break;
     }
     case 4: {  // throw_exception
+#ifdef ROBOT_MODULE_H_000
       fr = new FunctionResult(0);
+#else
+      fr = new FunctionResult(FunctionResult::Types::EXCEPTION);
+#endif
+
       break;
     }
     case 5: {  // print
@@ -257,6 +290,12 @@ void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
   (*colorPrintf_p)(this, uniq_name, colors, mask, args);
   va_end(args);
 }
+
+#ifndef ROBOT_MODULE_H_000
+PREFIX_FUNC_DLL unsigned short getRobotModuleApiVersion() {
+  return ROBOT_MODULE_API_VERSION;
+};
+#endif
 
 PREFIX_FUNC_DLL RobotModule *getRobotModuleObject() {
   return new TestRobotModule();
