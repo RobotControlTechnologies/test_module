@@ -21,7 +21,7 @@
 #define UID "Test_robot_module_v107"
 
 const unsigned int COUNT_ROBOTS = 99;
-const unsigned int COUNT_FUNCTIONS = 5;
+const unsigned int COUNT_FUNCTIONS = 6;
 const unsigned int COUNT_AXIS = 3;
 
 #define ADD_ROBOT_AXIS(AXIS_NAME, UPPER_VALUE, LOWER_VALUE) \
@@ -72,6 +72,12 @@ TestRobotModule::TestRobotModule() {
     robot_functions[function_id] =
         new FunctionData(function_id + 1, 2, pt, "print");
     function_id++;
+
+    pt = new FunctionData::ParamTypes[1];
+    pt[0] = FunctionData::ParamTypes::FLOAT;
+    robot_functions[function_id] =
+        new FunctionData(function_id + 1, 1, pt, "throw_value");
+
   }
   {
     robot_axis = new AxisData *[COUNT_AXIS];
@@ -250,6 +256,14 @@ FunctionResult *TestRobot::executeFunction(CommandMode mode,
       const char *tmp = (const char *)args[0];
       puts(tmp);
       break;
+    }
+    case 6:{ // throw_value
+            variable_value *vv = (variable_value *)args[0];
+#ifdef ROBOT_MODULE_H_000
+      fr = new FunctionResult(0, *vv);
+#else
+      fr = new FunctionResult(FunctionResult::Types::EXCEPTION, *vv);
+#endif
     }
     default:
       break;
