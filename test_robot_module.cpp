@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <string>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -11,13 +12,18 @@
 #include <cstddef>
 #endif
 
+#include "SimpleIni.h"
 #include "module.h"
 #include "robot_module.h"
 #include "test_robot_module.h"
 
 /* GLOBALS CONFIG */
 
-#define IID "RCT.Test_robot_module_v107"
+//#define IID "RCT.Test_robot_module_v107"
+
+#ifdef _WIN32
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#endif
 
 const unsigned int COUNT_ROBOTS = 99;
 const unsigned int COUNT_FUNCTIONS = 7;
@@ -32,8 +38,52 @@ const unsigned int COUNT_AXIS = 3;
   ++axis_id;
 
 TestRobotModule::TestRobotModule() {
+  std::string ConfigPath = "";
+#ifdef _WIN32
+  WCHAR DllPath[MAX_PATH] = {0};
+  GetModuleFileNameW((HINSTANCE)&__ImageBase, DllPath, (DWORD)MAX_PATH);
+
+  WCHAR *tmp = wcsrchr(DllPath, L'\\');
+  WCHAR wConfigPath[MAX_PATH] = {0};
+
+  size_t path_len = tmp - DllPath;
+
+  wcsncpy(wConfigPath, DllPath, path_len);
+  wcscat(wConfigPath, L"\\config.ini");
+
+  char c_ConfigPath[MAX_PATH] = {0};
+  wcstombs(c_ConfigPath, wConfigPath, sizeof(c_ConfigPath));
+  ConfigPath.append(c_ConfigPath);
+#else
+  Dl_info PathToSharedObject;
+  void *pointer = reinterpret_cast<void *>(getRobotModuleObject);
+  dladdr(pointer, &PathToSharedObject);
+  std::string dltemp(PathToSharedObject.dli_fname);
+
+  int dlfound = dltemp.find_last_of("/");
+
+  dltemp = dltemp.substr(0, dlfound);
+  dltemp += "/config.ini";
+
+  ConfigPath.append(dltemp.c_str());
+#endif
+
+  CSimpleIniA ini;
+  ini.SetMultiKey(true);
+
+  std::string string_IID("RCT.Test_robot_module_v107");
+  if (ini.LoadFile(ConfigPath.c_str()) >= 0)  // without config
+  {
+    std::string temp_iid(ini.GetValue("options", "IID", ""));
+    if (!temp_iid.empty()){
+      string_IID.assign(temp_iid);
+    }
+  }
+
 #if MODULE_API_VERSION > 000
   mi = new ModuleInfo;
+  char IID[string_IID.length() + 1];
+  strcpy(IID, string_IID.c_str());
   mi->uid = IID;
   mi->mode = ModuleInfo::Modes::PROD;
   mi->version = BUILD_NUMBER;
