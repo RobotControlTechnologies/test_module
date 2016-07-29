@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <map>
+#include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -13,15 +13,14 @@
 
 #include "module.h"
 #include "robot_module.h"
-
 #include "test_robot_module.h"
 
 /* GLOBALS CONFIG */
 
-#define UID "Test_robot_module_v107"
+#define IID "RCT.Test_robot_module_v107"
 
 const unsigned int COUNT_ROBOTS = 99;
-const unsigned int COUNT_FUNCTIONS = 6;
+const unsigned int COUNT_FUNCTIONS = 7;
 const unsigned int COUNT_AXIS = 3;
 
 #define ADD_ROBOT_AXIS(AXIS_NAME, UPPER_VALUE, LOWER_VALUE) \
@@ -33,9 +32,9 @@ const unsigned int COUNT_AXIS = 3;
   ++axis_id;
 
 TestRobotModule::TestRobotModule() {
-#ifndef ROBOT_MODULE_H_000
+#if MODULE_API_VERSION > 000
   mi = new ModuleInfo;
-  mi->uid = UID;
+  mi->uid = IID;
   mi->mode = ModuleInfo::Modes::PROD;
   mi->version = BUILD_NUMBER;
   mi->digest = NULL;
@@ -77,6 +76,13 @@ TestRobotModule::TestRobotModule() {
     pt[0] = FunctionData::ParamTypes::FLOAT;
     robot_functions[function_id] =
         new FunctionData(function_id + 1, 1, pt, "throw_value");
+    function_id++;
+
+    pt = new FunctionData::ParamTypes[1];
+    pt[0] = FunctionData::ParamTypes::STRING;
+    robot_functions[function_id] =
+        new FunctionData(function_id + 1, 1, pt, "debug");
+    function_id++;
 
   }
   {
@@ -88,10 +94,10 @@ TestRobotModule::TestRobotModule() {
   }
 }
 
-#ifdef ROBOT_MODULE_H_000
-const char *TestRobotModule::getUID() { return UID; }
-#else
+#if MODULE_API_VERSION > 000
 const struct ModuleInfo &TestRobotModule::getModuleInfo() { return *mi; }
+#else
+const char *TestRobotModule::getUID() { return IID; }
 #endif
 
 void TestRobotModule::prepare(colorPrintfModule_t *colorPrintf_p,
@@ -116,42 +122,76 @@ void *TestRobotModule::writePC(unsigned int *buffer_length) {
 
 int TestRobotModule::init() {
   for (unsigned int i = 0; i < COUNT_ROBOTS; ++i) {
-    TestRobot *test_robot = new TestRobot(i);
-    aviable_connections[i] = test_robot;
+    aviable_connections.push_back(new TestRobot(i + 1));
   }
   return 0;
 }
 
-Robot *TestRobotModule::robotRequire() {
-#ifdef IS_DEBUG
-  colorPrintf(ConsoleColor(), "new robot require\n");
-#endif
+#if MODULE_API_VERSION > 100
+int TestRobotModule::readPC(int pc_index, void *buffer, unsigned int buffer_length) {
+  return 0;
+}
 
-  for (m_connections::iterator i = aviable_connections.begin();
+int TestRobotModule::startProgram(int run_index, int pc_index) {
+  return 0;
+}
+
+AviableRobotsResult *TestRobotModule::getAviableRobots(int run_index) {
+  std::vector<TestRobot*> aviable_robots;
+  for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
-    if (i->second->isAviable) {
-#ifdef IS_DEBUG
-      colorPrintf(ConsoleColor(ConsoleColor::green), "finded free robot\n");
-#endif
+    if ((*i)->isAviable) {
+      aviable_robots.push_back(*i);
+    }
+  }
 
-      TestRobot *tr = i->second;
-      tr->isAviable = false;
+  unsigned int count_robots = aviable_robots.size();
+  if (!count_robots) {
+    return NULL;
+  }
+  Robot **robots = new Robot*[count_robots];
+  for (unsigned int i = 0; i < count_robots; ++i) {
+    robots[i] = aviable_robots[i];
+  }
 
-      return tr;
+  return new AviableRobotsResult(robots, count_robots);
+}
+Robot *TestRobotModule::robotRequire(int run_index, Robot *robot) {
+  for (auto i = aviable_connections.begin();
+       i != aviable_connections.end(); ++i) {
+    if ((*i)->isAviable) {
+      if ((!robot) || (robot == (*i))) {
+        (*i)->isAviable = false;
+        return (*i);
+      }
     }
   }
   return NULL;
 }
+#else
+int TestRobotModule::startProgram(int run_index) { return 0; }
 
-void TestRobotModule::robotFree(Robot *robot) {
-  TestRobot *test_robot = reinterpret_cast<TestRobot *>(robot);
-
-  for (m_connections::iterator i = aviable_connections.begin();
+Robot *TestRobotModule::robotRequire() {
+  for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
-    if (i->second == test_robot) {
-#ifdef IS_DEBUG
-      colorPrintf(ConsoleColor(), "free robot\n");
+    if ((*i)->isAviable) {
+      (*i)->isAviable = false;
+      return (*i);
+    }
+  }
+  return NULL;
+}
 #endif
+
+#if MODULE_API_VERSION > 100
+void TestRobotModule::robotFree(int run_index, Robot *robot) {
+#else
+void TestRobotModule::robotFree(Robot *robot) {
+#endif
+  TestRobot *test_robot = reinterpret_cast<TestRobot *>(robot);
+  for (auto i = aviable_connections.begin();
+       i != aviable_connections.end(); ++i) {
+    if ((*i) == test_robot) {
       test_robot->isAviable = true;
       return;
     }
@@ -159,19 +199,19 @@ void TestRobotModule::robotFree(Robot *robot) {
 }
 
 void TestRobotModule::final() {
-  for (m_connections::iterator i = aviable_connections.begin();
+  for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
-    delete i->second;
+    delete (*i);
   }
   aviable_connections.clear();
 }
 
-int TestRobotModule::startProgram(int uniq_index) { return 0; }
 
-int TestRobotModule::endProgram(int uniq_index) { return 0; }
+
+int TestRobotModule::endProgram(int run_index) { return 0; }
 
 void TestRobotModule::destroy() {
-#ifndef ROBOT_MODULE_H_000
+#if MODULE_API_VERSION > 000
   delete mi;
 #endif
 
@@ -206,14 +246,21 @@ void TestRobot::prepare(colorPrintfRobot_t *colorPrintf_p,
   this->colorPrintf_p = colorPrintfVA_p;
 }
 
+#if MODULE_API_VERSION > 100
+const char *TestRobot::getUniqName() {
+  return uniq_name;
+}
+
+FunctionResult *TestRobot::executeFunction(int run_index, CommandMode mode,
+                                           system_value command_index,
+                                           void **args) {
+#else
 FunctionResult *TestRobot::executeFunction(CommandMode mode,
                                            system_value command_index,
                                            void **args) {
-  FunctionResult *fr = NULL;
-#ifdef IS_DEBUG
-  colorPrintf(ConsoleColor(ConsoleColor::green), "execute function - %d\n",
-              command_index);
 #endif
+
+  FunctionResult *fr = NULL;
 
   switch (command_index) {
     case 1: {  // none
@@ -230,18 +277,18 @@ FunctionResult *TestRobot::executeFunction(CommandMode mode,
     }
     case 3: {  // get_some_value
       variable_value *vv = (variable_value *)args[0];
-#ifdef ROBOT_MODULE_H_000
-      fr = new FunctionResult(1, *vv);
-#else
+#if MODULE_API_VERSION > 000
       fr = new FunctionResult(FunctionResult::Types::VALUE, *vv);
+#else
+      fr = new FunctionResult(1, *vv);
 #endif
       break;
     }
     case 4: {  // throw_exception
-#ifdef ROBOT_MODULE_H_000
-      fr = new FunctionResult(0);
-#else
+#if MODULE_API_VERSION > 000
       fr = new FunctionResult(FunctionResult::Types::EXCEPTION);
+#else
+      fr = new FunctionResult(0);
 #endif
 
       break;
@@ -254,16 +301,21 @@ FunctionResult *TestRobot::executeFunction(CommandMode mode,
       usleep(((uint32_t)*vv) * 1000);
 #endif
       const char *tmp = (const char *)args[0];
-      puts(tmp);
+      colorPrintf(ConsoleColor(ConsoleColor::white), "%s", tmp);
       break;
     }
     case 6:{ // throw_value
             variable_value *vv = (variable_value *)args[0];
-#ifdef ROBOT_MODULE_H_000
-      fr = new FunctionResult(0, *vv);
-#else
+#if MODULE_API_VERSION > 000
       fr = new FunctionResult(FunctionResult::Types::EXCEPTION, *vv);
+#else
+      fr = new FunctionResult(0, *vv);
 #endif
+    }
+    case 7: {  // debug
+      const char *tmp = (const char *)args[0];
+      colorPrintf(ConsoleColor(ConsoleColor::white), "%s", tmp);
+      break;
     }
     default:
       break;
@@ -301,13 +353,17 @@ TestRobot::~TestRobot() { delete[] uniq_name; }
 void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
   va_list args;
   va_start(args, mask);
+#if MODULE_API_VERSION > 100
+  (*colorPrintf_p)(this, colors, mask, args);
+#else
   (*colorPrintf_p)(this, uniq_name, colors, mask, args);
+#endif
   va_end(args);
 }
 
-#ifndef ROBOT_MODULE_H_000
+#if MODULE_API_VERSION > 000
 PREFIX_FUNC_DLL unsigned short getRobotModuleApiVersion() {
-  return ROBOT_MODULE_API_VERSION;
+  return MODULE_API_VERSION;
 };
 #endif
 

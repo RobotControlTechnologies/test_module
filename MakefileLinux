@@ -4,30 +4,27 @@ CCC=g++
 CXX=g++
 
 BUILD_NUMBER = 0
+API_VERSION = current
 
 # Constants
 .PHONY: debug
-debug_000 release_000: MODULE_HEADERS_DIR = "/var/lib/jenkins/workspace/module_headers/000"
-debug release: MODULE_HEADERS_DIR = "/var/lib/jenkins/workspace/module_headers/current"
+
+MODULE_HEADERS_DIR = "/var/lib/jenkins/workspace/module_headers/${API_VERSION}"
 
 INCLUDE_DIR_FLAGS = -I${MODULE_HEADERS_DIR}
 FLAGS_MUTUAL = -Wall -m32 -std=c++11 ${INCLUDE_DIR_FLAGS} -MMD -MP -MF "${OBJECTDIR}/$@.d" -DBUILD_NUMBER=${BUILD_NUMBER}
 
-debug: OBJECTDIR = build/Debug
-debug_000: OBJECTDIR = build/Debug_000
-
-release: OBJECTDIR = build/Release
-release_000: OBJECTDIR = build/Release_000
+debug: OBJECTDIR = build/Debug_${API_VERSION}
+release: OBJECTDIR = build/Release_${API_VERSION}
 
 debug debug_000: FLAGS = -g ${FLAGS_MUTUAL}
 release release_000: FLAGS = -O3 ${FLAGS_MUTUAL}
 
-debug debug_000 release release_000: clean module
+debug release: clean module
 
 clean:
 	@echo "-------------------------" 
 	rm -rf ${OBJECTDIR}
-
 
 test_robot_module.o:  test_robot_module.cpp
 	@echo "-------------------------" 
@@ -35,10 +32,7 @@ test_robot_module.o:  test_robot_module.cpp
 	rm -f "${OBJECTDIR}/$@.d"
 	$(COMPILE.cc) $(FLAGS) -o ${OBJECTDIR}/test_robot_module.o test_robot_module.cpp
 
-
 module: test_robot_module.o
 	@echo "-------------------------" 
 	mkdir -p ${OBJECTDIR}
 	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module.so ${OBJECTDIR}/test_robot_module.o
-
-
