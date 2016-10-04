@@ -37,6 +37,7 @@ target_compile_options(${PROJECT} PRIVATE
   -Wall -Werror
   -pedantic
   -fno-strict-aliasing
+  $<$<BOOL:API_VERSION LESS 101>:-Wno-write-strings>
 )
 
 #if(UNIX AND (X86_64 OR X86)) need detect X86
@@ -44,8 +45,10 @@ target_compile_options(${PROJECT} PRIVATE
   set_target_properties(${PROJECT} PROPERTIES LINK_FLAGS -m32)
 #endif()
 
-SET_TARGET_PROPERTIES(${PROJECT} PROPERTIES PREFIX "")
-set_target_properties(${PROJECT} PROPERTIES DEBUG_POSTFIX "_debug")
+set_target_properties(${PROJECT} PROPERTIES
+  PREFIX ""
+  DEBUG_POSTFIX "_debug"
+)
 
 #################################################################################
 # Libraries
@@ -77,4 +80,4 @@ endif()
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
 target_include_directories(${PROJECT} INTERFACE $<INSTALL_INTERFACE:include>)
 
-install(TARGETS ${PROJECT} EXPORT ${PROJECT} RUNTIME DESTINATION lib COMPONENT Runtime)
+install(TARGETS ${PROJECT} EXPORT ${PROJECT} RUNTIME DESTINATION lib_${API_VERSION} COMPONENT Runtime)
