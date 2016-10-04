@@ -364,7 +364,7 @@ void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
 #if MODULE_API_VERSION > 000
 PREFIX_FUNC_DLL unsigned short getRobotModuleApiVersion() {
   return MODULE_API_VERSION;
-};
+}
 #endif
 
 PREFIX_FUNC_DLL RobotModule *getRobotModuleObject() {
