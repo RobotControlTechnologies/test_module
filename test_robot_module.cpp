@@ -137,24 +137,37 @@ int TestRobotModule::startProgram(int run_index, int pc_index) {
 }
 
 AviableRobotsResult *TestRobotModule::getAviableRobots(int run_index) {
-  std::vector<TestRobot*> aviable_robots;
+  unsigned int count_busy_robots = 0;
+  unsigned int count_free_robots = 0;
+  
   for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
     if ((*i)->isAviable) {
-      aviable_robots.push_back(*i);
+      ++count_free_robots;
+    } else {
+      ++count_busy_robots;
     }
   }
 
-  unsigned int count_robots = aviable_robots.size();
-  if (!count_robots) {
+  if (!count_busy_robots || !count_free_robots) {
     return NULL;
   }
-  Robot **robots = new Robot*[count_robots];
-  for (unsigned int i = 0; i < count_robots; ++i) {
-    robots[i] = aviable_robots[i];
+  
+  Robot **free_robots = new Robot*[count_free_robots];
+  Robot **busy_robots = new Robot*[count_busy_robots];
+  
+  unsigned int index_busy = 0;
+  unsigned int index_free = 0;
+  for (auto i = aviable_connections.begin();
+       i != aviable_connections.end(); ++i) {
+    if ((*i)->isAviable) {
+      busy_robots[index_busy++] = *i;
+    } else {
+      free_robots[index_free++] = *i;
+    }
   }
 
-  return new AviableRobotsResult(robots, count_robots);
+  return new AviableRobotsResult(busy_robots, free_robots, count_busy_robots, count_free_robots);
 }
 Robot *TestRobotModule::robotRequire(int run_index, Robot *robot) {
   for (auto i = aviable_connections.begin();
