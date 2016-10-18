@@ -1,6 +1,8 @@
 #ifndef TEST_ROBOT_MODULE_H
 #define TEST_ROBOT_MODULE_H
 
+#include <string>
+
 class TestRobotModule;
 
 class TestRobot : public Robot {
@@ -31,6 +33,8 @@ class TestRobotModule : public RobotModule {
   FunctionData **robot_functions;
   AxisData **robot_axis;
   colorPrintfModuleVA_t *colorPrintf_p;
+
+  std::string IID;
 
 #if MODULE_API_VERSION > 000
   ModuleInfo *mi;
