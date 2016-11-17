@@ -149,21 +149,25 @@ AviableRobotsResult *TestRobotModule::getAviableRobots(int run_index) {
     }
   }
 
-  if (!count_busy_robots || !count_free_robots) {
+  if (!count_busy_robots && !count_free_robots) {
     return NULL;
   }
-  
-  Robot **free_robots = new Robot*[count_free_robots];
-  Robot **busy_robots = new Robot*[count_busy_robots];
-  
+
+  Robot **free_robots = count_free_robots ? new Robot*[count_free_robots] : nullptr;
+  Robot **busy_robots = count_busy_robots ? new Robot*[count_busy_robots] : nullptr;
+
   unsigned int index_busy = 0;
   unsigned int index_free = 0;
   for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
     if ((*i)->isAviable) {
-      busy_robots[index_busy++] = *i;
+      if (free_robots) {
+        free_robots[index_free++] = *i;
+      }
     } else {
-      free_robots[index_free++] = *i;
+      if (busy_robots) {
+        busy_robots[index_busy++] = *i;
+      }
     }
   }
 
