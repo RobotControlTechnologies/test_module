@@ -25,7 +25,7 @@
 
 /* GLOBALS CONFIG */
 
-#define IID "RCT.Test_robot2_module_v107"
+#define IID "RCT.Test_robot_module_v107"
 
 const unsigned int COUNT_ROBOTS = 99;
 const unsigned int COUNT_FUNCTIONS = 7;
