@@ -179,7 +179,12 @@ std::string TestRobotModule::GetIniIID(){
   return m_IID;
 }
 
-int TestRobotModule::init() {
+#if MODULE_API_VERSION == 102
+  int TestRobotModule::init(initCallback_t& initCallback)
+#else
+  int TestRobotModule::init()
+#endif
+{
   
   std::string ConfigPath = GetConfigPath();
   
