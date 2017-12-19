@@ -2,22 +2,30 @@
 #include <stdlib.h>
 #include <vector>
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <stdint.h>
-#include <unistd.h>
-#include <cstdarg>
-#include <cstddef>
-#endif
-
+#include "mystring.h"
 #include "module.h"
 #include "robot_module.h"
 #include "test_robot_module.h"
+#include "SimpleIni.h"
+
+#ifdef _WIN32
+  #include <windows.h>
+  #include <basetyps.h>
+#include <string>
+  EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#else
+  #include <stdint.h>
+  #include <unistd.h>
+  #include <cstdarg>
+  #include <cstddef>
+  #include <fcntl.h>
+  #include <dlfcn.h>
+#endif
+
 
 /* GLOBALS CONFIG */
 
-#define IID "RCT.Test_robot_module_v107"
+#define IID "RCT.Test_robot2_module_v107"
 
 const unsigned int COUNT_ROBOTS = 99;
 const unsigned int COUNT_FUNCTIONS = 7;
@@ -97,7 +105,8 @@ TestRobotModule::TestRobotModule() {
 #if MODULE_API_VERSION > 000
 const struct ModuleInfo &TestRobotModule::getModuleInfo() { return *mi; }
 #else
-const char *TestRobotModule::getUID() { return IID; }
+const char *TestRobotModule::getUID() {
+  return GetIniIID().c_str(); }
 #endif
 
 void TestRobotModule::prepare(colorPrintfModule_t *colorPrintf_p,
@@ -120,9 +129,83 @@ void *TestRobotModule::writePC(unsigned int *buffer_length) {
   return NULL;
 }
 
-int TestRobotModule::init() {
-  for (unsigned int i = 0; i < COUNT_ROBOTS; ++i) {
-    aviable_connections.push_back(new TestRobot(i + 1));
+std::string TestRobotModule::GetConfigPath(){
+  std::string ConfigPath = "";
+#ifdef _WIN32
+  WCHAR DllPath[MAX_PATH] = {0};
+  GetModuleFileNameW((HINSTANCE)&__ImageBase, DllPath, (DWORD)MAX_PATH);
+
+  WCHAR *tmp = wcsrchr(DllPath, L'\\');
+  WCHAR wConfigPath[MAX_PATH] = {0};
+
+  size_t path_len = tmp - DllPath;
+
+  wcsncpy(wConfigPath, DllPath, path_len);
+  wcscat(wConfigPath, L"\\config.ini");
+
+  char c_ConfigPath[MAX_PATH] = {0};
+  wcstombs(c_ConfigPath, wConfigPath, sizeof(c_ConfigPath));
+  ConfigPath.append(c_ConfigPath);
+#else
+  Dl_info PathToSharedObject;
+  void *pointer = reinterpret_cast<void *>(getRobotModuleObject);
+  dladdr(pointer, &PathToSharedObject);
+  std::string dltemp(PathToSharedObject.dli_fname);
+
+  int dlfound = dltemp.find_last_of("/");
+
+  dltemp = dltemp.substr(0, dlfound);
+  dltemp += "/config.ini";
+
+  ConfigPath.append(dltemp.c_str());
+#endif
+  
+  return ConfigPath;
+}
+
+std::string TestRobotModule::GetIniIID(){
+  if(!m_IID.empty()){
+    return m_IID;
+  }
+  
+  std::string ConfigPath = GetConfigPath();
+  CSimpleIniA ini;
+  ini.SetMultiKey(true);
+  if (ini.LoadFile(ConfigPath.c_str()) < 0) {
+      return "";
+  }
+  
+  m_IID = ini.GetValue("main", "module_IID", IID);
+  return m_IID;
+}
+
+#if MODULE_API_VERSION == 102
+  int TestRobotModule::init(initCallback_t& initCallback)
+#else
+  int TestRobotModule::init()
+#endif
+{
+  
+  std::string ConfigPath = GetConfigPath();
+  
+  CSimpleIniA ini;
+  ini.SetMultiKey(true);
+  
+  try {
+    if (ini.LoadFile(ConfigPath.c_str()) < 0) {
+      return 1;
+    }
+    int robot_count = ini.GetLongValue("main", "count_robots", -1);
+    for(int i(1); i <= robot_count; i++){
+      std::string robot_section("robot_");
+      robot_section.append(std::to_string(i));
+      std::string robot_name = ini.GetValue(robot_section.c_str(), "robot_name", "");       
+      
+      aviable_connections.push_back(new TestRobot(i, robot_name)); 
+    }
+  }
+  catch(...){
+    return 1;
   }
   return 0;
 }
@@ -149,21 +232,25 @@ AviableRobotsResult *TestRobotModule::getAviableRobots(int run_index) {
     }
   }
 
-  if (!count_busy_robots || !count_free_robots) {
+  if (!count_busy_robots && !count_free_robots) {
     return NULL;
   }
-  
-  Robot **free_robots = new Robot*[count_free_robots];
-  Robot **busy_robots = new Robot*[count_busy_robots];
-  
+
+  Robot **free_robots = count_free_robots ? new Robot*[count_free_robots] : nullptr;
+  Robot **busy_robots = count_busy_robots ? new Robot*[count_busy_robots] : nullptr;
+
   unsigned int index_busy = 0;
   unsigned int index_free = 0;
   for (auto i = aviable_connections.begin();
        i != aviable_connections.end(); ++i) {
     if ((*i)->isAviable) {
-      busy_robots[index_busy++] = *i;
+      if (free_robots) {
+        free_robots[index_free++] = *i;
+      }
     } else {
-      free_robots[index_free++] = *i;
+      if (busy_robots) {
+        busy_robots[index_busy++] = *i;
+      }
     }
   }
 
@@ -249,9 +336,9 @@ void TestRobotModule::colorPrintf(ConsoleColor colors, const char *mask, ...) {
   va_end(args);
 }
 
-TestRobot::TestRobot(unsigned int uniq_index) : isAviable(true) {
-  uniq_name = new char[40];
-  sprintf(uniq_name, "robot-%u", uniq_index);
+TestRobot::TestRobot(unsigned int uniq_index, std::string Name) : 
+  m_Name(Name),
+  isAviable(true){
 }
 
 void TestRobot::prepare(colorPrintfRobot_t *colorPrintf_p,
@@ -261,7 +348,7 @@ void TestRobot::prepare(colorPrintfRobot_t *colorPrintf_p,
 
 #if MODULE_API_VERSION > 100
 const char *TestRobot::getUniqName() {
-  return uniq_name;
+  return m_Name.c_str();
 }
 
 FunctionResult *TestRobot::executeFunction(int run_index, CommandMode mode,
@@ -361,7 +448,7 @@ void TestRobot::axisControl(system_value axis_index, variable_value value) {
               name, value);
 }
 
-TestRobot::~TestRobot() { delete[] uniq_name; }
+TestRobot::~TestRobot() {}
 
 void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
   va_list args;
@@ -369,7 +456,7 @@ void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
 #if MODULE_API_VERSION > 100
   (*colorPrintf_p)(this, colors, mask, args);
 #else
-  (*colorPrintf_p)(this, uniq_name, colors, mask, args);
+  (*colorPrintf_p)(this, m_Name.c_str(), colors, mask, args);
 #endif
   va_end(args);
 }
@@ -377,7 +464,7 @@ void TestRobot::colorPrintf(ConsoleColor colors, const char *mask, ...) {
 #if MODULE_API_VERSION > 000
 PREFIX_FUNC_DLL unsigned short getRobotModuleApiVersion() {
   return MODULE_API_VERSION;
-};
+}
 #endif
 
 PREFIX_FUNC_DLL RobotModule *getRobotModuleObject() {

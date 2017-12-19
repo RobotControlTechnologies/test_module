@@ -4,12 +4,12 @@
 class TestRobotModule;
 
 class TestRobot : public Robot {
-  char *uniq_name;
+  std::string m_Name = "";
   colorPrintfRobotVA_t *colorPrintf_p;
 
  public:
   bool isAviable;
-  TestRobot(unsigned int uniq_index);
+  TestRobot(unsigned int uniq_index, std::string Name = "");
   void prepare(colorPrintfRobot_t *colorPrintf_p,
                colorPrintfRobotVA_t *colorPrintfVA_p);
 #if MODULE_API_VERSION > 100
@@ -31,6 +31,8 @@ class TestRobotModule : public RobotModule {
   FunctionData **robot_functions;
   AxisData **robot_axis;
   colorPrintfModuleVA_t *colorPrintf_p;
+  
+  std::string m_IID = "";
 
 #if MODULE_API_VERSION > 000
   ModuleInfo *mi;
@@ -52,7 +54,13 @@ class TestRobotModule : public RobotModule {
   AxisData **getAxis(unsigned int *count_axis);
   void *writePC(unsigned int *buffer_length);
 
+  
+#if MODULE_API_VERSION == 102
+  virtual int init(initCallback_t& initCallback);
+#else
   int init();
+#endif
+  
   void final();
 
 #if MODULE_API_VERSION > 100
@@ -74,6 +82,9 @@ class TestRobotModule : public RobotModule {
   ~TestRobotModule(){};
 
   void colorPrintf(ConsoleColor colors, const char *mask, ...);
+  
+  std::string GetConfigPath();
+  std::string GetIniIID();
 };
 
 #endif /* TEST_ROBOT_MODULE_H */
