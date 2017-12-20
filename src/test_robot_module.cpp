@@ -190,16 +190,20 @@ std::string TestRobotModule::GetIniIID(){
   
   CSimpleIniA ini;
   ini.SetMultiKey(true);
-  
+  int robot_count = 0;
+  bool config_exists = 0;
   try {
-    if (ini.LoadFile(ConfigPath.c_str()) < 0) {
-      return 1;
-    }
-    int robot_count = ini.GetLongValue("main", "count_robots", -1);
+    config_exists =  ini.LoadFile(ConfigPath.c_str()) == 0;
+    
+    
+    robot_count = config_exists? ini.GetLongValue("main", "count_robots", -1) : COUNT_ROBOTS;
     for(int i(1); i <= robot_count; i++){
-      std::string robot_section("robot_");
-      robot_section.append(std::to_string(i));
-      std::string robot_name = ini.GetValue(robot_section.c_str(), "robot_name", "");       
+      std::string robot_name = "test_" + std::to_string(i);
+      if(config_exists){
+        std::string robot_section("robot_");
+        robot_section.append(std::to_string(i));
+        robot_name = ini.GetValue(robot_section.c_str(), "robot_name", "");
+      }
       
       aviable_connections.push_back(new TestRobot(i, robot_name)); 
     }
