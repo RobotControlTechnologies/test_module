@@ -58,7 +58,7 @@ set_target_properties(${PROJECT} PROPERTIES
 ## SimpleIni
 ###############################
 if(NOT SIMPLE_INI_PATH)
-  set(SIMPLE_INI_PATH "../../libraries/3rdparty/simpleini")
+  set(SIMPLE_INI_PATH "../../../libraries/3rdparty/simpleini")
 endif()
 
 if(NOT SIMPLE_INI_PATH STREQUAL SIMPLE_INI_PATH_INTERNAL)
@@ -77,7 +77,7 @@ endif()
 ## Common_headers
 ###############################
 if(NOT COMMON_HEADER_PATH)
-  set(COMMON_HEADER_PATH "../../libraries/common_headers")
+  set(COMMON_HEADER_PATH "../../../libraries/common_headers")
 endif()
 
 if(NOT COMMON_HEADER_PATH STREQUAL COMMON_HEADER_PATH_INTERNAL)
@@ -98,7 +98,7 @@ endif()
 ## Module_headers
 ###############################
 if(NOT MODULE_HEADERS_PATH)
-  set(MODULE_HEADERS_PATH "../../libraries/public/module_headers")
+  set(MODULE_HEADERS_PATH "../../../libraries/public/module_headers")
 endif()
 
 if(NOT MODULE_HEADERS_PATH STREQUAL MODULE_HEADERS_PATH_INTERNAL)
