@@ -11,7 +11,6 @@
 #ifdef _WIN32
   #include <windows.h>
   #include <basetyps.h>
-#include <string>
   EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #else
   #include <stdint.h>
