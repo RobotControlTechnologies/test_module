@@ -55,6 +55,46 @@ set_target_properties(${PROJECT} PROPERTIES
 #################################################################################
 
 ###############################
+## SimpleIni
+###############################
+if(NOT SIMPLE_INI_PATH)
+  set(SIMPLE_INI_PATH "../../../libraries/3rdparty/simpleini")
+endif()
+
+if(NOT SIMPLE_INI_PATH STREQUAL SIMPLE_INI_PATH_INTERNAL)
+  unset(SIMPLE_INI_DIR)
+endif()
+set(SIMPLE_INI_PATH_INTERNAL ${SIMPLE_INI_PATH} CACHE INTERNAL "" FORCE)
+
+find_path(SIMPLE_INI_DIR NAMES "SimpleIni.h" PATHS "${SIMPLE_INI_PATH}" NO_DEFAULT_PATH)
+if(SIMPLE_INI_DIR)
+  target_include_directories(${PROJECT} SYSTEM PRIVATE ${SIMPLE_INI_DIR})
+else()
+  message(SEND_ERROR "Please set SIMPLE_INI_PATH, current value: ${SIMPLE_INI_PATH}")
+endif()
+
+###############################
+## Common_headers
+###############################
+if(NOT COMMON_HEADER_PATH)
+  set(COMMON_HEADER_PATH "../../../libraries/common_headers")
+endif()
+
+if(NOT COMMON_HEADER_PATH STREQUAL COMMON_HEADER_PATH_INTERNAL)
+  unset(COMMON_HEADER_CONFIG)
+endif()
+set(COMMON_HEADER_PATH_INTERNAL ${COMMON_HEADER_PATH} CACHE INTERNAL "" FORCE)
+
+find_file(COMMON_HEADER_CONFIG NAMES "config/common_headers.cmake" PATHS "${COMMON_HEADER_PATH}/build/install" NO_DEFAULT_PATH)
+if(COMMON_HEADER_CONFIG)
+  include(${COMMON_HEADER_CONFIG})
+  target_link_libraries(${PROJECT} PRIVATE common_headers)
+else()
+  message(SEND_ERROR "Please set COMMON_HEADER_PATH, current value: ${COMMON_HEADER_PATH}")
+endif()
+
+
+###############################
 ## Module_headers
 ###############################
 if(NOT MODULE_HEADERS_PATH)
