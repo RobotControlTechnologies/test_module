@@ -125,8 +125,11 @@ AxisData **TestRobotModule::getAxis(unsigned int *count_axis) {
 }
 
 void *TestRobotModule::writePC(unsigned int *buffer_length) {
-  (*buffer_length) = 0;
-  return NULL;
+ char* res = new char[2]();
+ *buffer_length = 2;
+ res[0] = 'O';
+ res[1] = 'K';
+ return res;
 }
 
 std::string TestRobotModule::GetConfigPath(){
@@ -216,6 +219,19 @@ std::string TestRobotModule::GetIniIID(){
 
 #if MODULE_API_VERSION > 100
 int TestRobotModule::readPC(int pc_index, void *buffer, unsigned int buffer_length) {
+  if(buffer_length != 2){
+    return 1;        
+  }
+  
+  char* buf = (char*)buffer;
+  if(!buf){
+    return 1;
+  }
+  
+  if(buf[0] != 'O' || buf[1] != 'K'){
+    return 1;
+  }
+  
   return 0;
 }
 
