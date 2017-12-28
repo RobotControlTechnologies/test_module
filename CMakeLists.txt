@@ -35,7 +35,6 @@ set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD 11)
 
 target_compile_options(${PROJECT} PRIVATE
   -Wall -Werror
-  -pedantic
   -fno-strict-aliasing
   $<$<BOOL:API_VERSION LESS 101>:-Wno-write-strings>
 )

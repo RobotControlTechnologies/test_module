@@ -3,6 +3,12 @@
 #include <vector>
 
 #include "mystring.h"
+
+#if MODULE_API_VERSION  < 100
+  #include <cstdarg>
+  #include <cstddef>
+#endif
+
 #include "module.h"
 #include "robot_module.h"
 #include "test_robot_module.h"
@@ -15,8 +21,6 @@
 #else
   #include <stdint.h>
   #include <unistd.h>
-  #include <cstdarg>
-  #include <cstddef>
   #include <fcntl.h>
   #include <dlfcn.h>
 #endif
