@@ -35,7 +35,7 @@ class TestRobotModule : public RobotModule {
   std::string m_IID = "";
 
 #if MODULE_API_VERSION > 000
-  ModuleInfo *mi;
+  ModuleInfo *mi = nullptr;
 #endif
 
  public:
