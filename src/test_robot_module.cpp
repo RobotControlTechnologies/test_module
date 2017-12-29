@@ -45,10 +45,13 @@ const unsigned int COUNT_AXIS = 3;
 TestRobotModule::TestRobotModule() {
 #if MODULE_API_VERSION > 000
   mi = new ModuleInfo;
-  std::string str;
-  std::vector<char> writable(GetIniIID().begin(), GetIniIID().end());
-  writable.push_back('\0');
-  mi->uid = &writable[0];
+  #if MODULE_API_VERSION == 100
+    std::vector<char>* writable = new std::vector<char>(GetIniIID().begin(), GetIniIID().end());
+    writable->push_back('\0');
+    mi->uid = &(*writable)[0];
+  #else
+    mi->uid = GetIniIID().c_str();
+  #endif
   mi->mode = ModuleInfo::Modes::PROD;
   mi->version = BUILD_NUMBER;
   mi->digest = NULL;
@@ -323,7 +326,10 @@ int TestRobotModule::endProgram(int run_index) { return 0; }
 
 void TestRobotModule::destroy() {
 #if MODULE_API_VERSION > 000
-  delete mi;
+  if (mi != nullptr){
+    delete mi;
+    mi = nullptr;
+  }
 #endif
 
   for (unsigned int j = 0; j < COUNT_FUNCTIONS; ++j) {
