@@ -45,7 +45,10 @@ const unsigned int COUNT_AXIS = 3;
 TestRobotModule::TestRobotModule() {
 #if MODULE_API_VERSION > 000
   mi = new ModuleInfo;
-  mi->uid = IID;
+  std::string str;
+  std::vector<char> writable(GetIniIID().begin(), GetIniIID().end());
+  writable.push_back('\0');
+  mi->uid = &writable[0];
   mi->mode = ModuleInfo::Modes::PROD;
   mi->version = BUILD_NUMBER;
   mi->digest = NULL;
@@ -109,7 +112,8 @@ TestRobotModule::TestRobotModule() {
 const struct ModuleInfo &TestRobotModule::getModuleInfo() { return *mi; }
 #else
 const char *TestRobotModule::getUID() {
-  return GetIniIID().c_str(); }
+  return GetIniIID().c_str();
+}
 #endif
 
 void TestRobotModule::prepare(colorPrintfModule_t *colorPrintf_p,
@@ -175,7 +179,7 @@ std::string TestRobotModule::GetIniIID(){
   CSimpleIniA ini;
   ini.SetMultiKey(true);
   if (ini.LoadFile(ConfigPath.c_str()) < 0) {
-      return "";
+      return IID;
   }
   
   m_IID = ini.GetValue("main", "module_IID", IID);
