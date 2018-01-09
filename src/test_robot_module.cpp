@@ -185,10 +185,11 @@ std::string TestRobotModule::GetIniIID(){
   CSimpleIniA ini;
   ini.SetMultiKey(true);
   if (ini.LoadFile(ConfigPath.c_str()) < 0) {
-      return IID;
+    m_IID = IID;
   }
-  
-  m_IID = ini.GetValue("main", "module_IID", IID);
+  else{
+    m_IID = ini.GetValue("main", "module_IID", IID);
+  }
   return m_IID;
 }
 
