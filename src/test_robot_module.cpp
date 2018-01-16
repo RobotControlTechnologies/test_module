@@ -46,9 +46,10 @@ TestRobotModule::TestRobotModule() {
 #if MODULE_API_VERSION > 000
   mi = new ModuleInfo;
   #if MODULE_API_VERSION == 100
-    std::vector<char>* writable = new std::vector<char>(GetIniIID().begin(), GetIniIID().end());
-    writable->push_back('\0');
-    mi->uid = &(*writable)[0];
+    //std::vector<char>* writable = new std::vector<char>(GetIniIID().begin(), GetIniIID().end());
+    //writable->push_back('\0');
+    //mi->uid = &(*writable)[0];
+    mi->uid = const_cast<char*>(GetIniIID().c_str());
   #else
     mi->uid = GetIniIID().c_str();
   #endif
@@ -190,6 +191,7 @@ std::string TestRobotModule::GetIniIID(){
   else{
     m_IID = ini.GetValue("main", "module_IID", IID);
   }
+
   return m_IID;
 }
 
